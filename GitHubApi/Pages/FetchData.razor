@@ -1,0 +1,97 @@
+﻿@page "/fetchdata"
+
+@using GitHubApi.Factory
+@using GitHubApi.Data
+@using GitHub.Shared.Models
+@using System.Linq
+@using System.Collections.Generic
+@inject IRepoServiceFactory RepoFactory
+
+<h1>Repo Service</h1>
+
+<p>Enter the repo you wish to retrieve</p>
+<EditForm Model="@_repoModel" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label>
+            Retrieve Info For User:
+            <InputSelect @bind-Value="_repoModel.RepositoryService">
+                <option value="">Select Service ...</option>
+                <option value="GitHub">GitHub</option>
+            </InputSelect>
+        </label>
+    </p>
+    <p>
+        <label>
+            UserName:
+            <InputText @bind-Value="_repoModel.UserName" />
+        </label>
+    </p>
+
+
+    <button type="submit">Submit</button>
+
+</EditForm>
+
+<br />
+
+@if (_repos == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!_repos.Any())
+{
+    if (!string.IsNullOrEmpty(error))
+    {
+        <p> Error Occurred: @error </p>
+    }
+    else
+    {
+        <p>Nothing here</p>
+    }
+}
+else
+{
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>Repository Name</th>
+                <th>Avatar</th>
+                <th>Subscribers</th>
+                <th>Stars</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var repo in _repos)
+            {
+                <tr>
+                    <td>@repo.RepoName</td>
+                    <td><img src="@repo.UserInfo.AvatarUrl" alt="avatar" height="42" width="42"></td>
+                    <td>@repo.SubscriberCount</td>
+                    <td>@repo.StarCount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private RepositoryModel _repoModel = new RepositoryModel();
+    private List<RepositoryEntity> _repos;
+    private string error = string.Empty;
+    private async Task HandleValidSubmit()
+    {
+        var serivce = RepoFactory.GetRepoService(_repoModel.RepositoryService);
+        try
+        {
+            _repos = (await serivce.GetRepoByUser(_repoModel.UserName)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _repos = new List<RepositoryEntity>();
+            error = ex.Message;
+        }
+    }
+}
